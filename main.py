@@ -7,11 +7,17 @@ user_language = {}
 # Mensaje de bienvenida
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyboard = [['Español', 'English']]
+
     await update.message.reply_text(
-        "👋 ¡Bienvenido a Start Waves Bot!\nPlease choose your language / Por favor elige tu idioma:",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        '👋 ¡Bienvenido a Start Waves Bot!\nPlease choose your language / Por favor elige tu idioma:',
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard,
+            one_time_keyboard=True,
+            resize_keyboard=True  # ✅ importante
+        )
     )
-    return LANGUAGE
+
+    return SELECTING_LANGUAGE
 
 # Selección de idioma
 async def select_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
