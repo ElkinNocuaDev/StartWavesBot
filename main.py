@@ -1,63 +1,73 @@
+import os
+import logging
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    ConversationHandler,
+    filters,
+)
 
-LANGUAGE, FLOW = range(2)
-user_language = {}
+# Estados de la conversación
+SELECTING_LANGUAGE = 0
 
-# Mensaje de bienvenida
+# Configurar logs
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_keyboard = [['Español', 'English']]
-
+    
     await update.message.reply_text(
         '👋 ¡Bienvenido a Start Waves Bot!\nPlease choose your language / Por favor elige tu idioma:',
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard,
             one_time_keyboard=True,
-            resize_keyboard=True  # ✅ importante
+            resize_keyboard=True
         )
     )
 
     return SELECTING_LANGUAGE
 
-# Selección de idioma
-async def select_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = update.message.text
-    user_language[update.effective_user.id] = lang
+# Handler de idioma
+async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_language = update.message.text
 
-    if lang == 'Español':
-        await update.message.reply_text("Has seleccionado Español. ¿Qué deseas hacer ahora? 🚀")
+    if user_language == 'Español':
+        await update.message.reply_text("Has seleccionado Español 🇪🇸")
+    elif user_language == 'English':
+        await update.message.reply_text("You have selected English 🇬🇧")
     else:
-        await update.message.reply_text("You selected English. What would you like to do next? 🚀")
+        await update.message.reply_text("Idioma no reconocido / Language not recognized.")
 
-    return FLOW
-
-# Manejo de flujo según idioma
-async def flow_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = user_language.get(update.effective_user.id, 'English')
-    if lang == 'Español':
-        await update.message.reply_text("Este es el flujo en español 🎯")
-    else:
-        await update.message.reply_text("This is the English flow 🎯")
     return ConversationHandler.END
 
-# App y handlers
-def main():
-    import os
-    token = os.getenv("BOT_TOKEN")
+# Cancelar conversación
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Conversación cancelada. ¡Hasta luego!')
+    return ConversationHandler.END
 
-    app = ApplicationBuilder().token(token).build()
+if __name__ == '__main__':
+    # Cargar token desde variable de entorno
+    TOKEN = os.environ["BOT_TOKEN"]
+
+    app = ApplicationBuilder().token(TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, select_language)],
-            FLOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, flow_handler)],
+            SELECTING_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, language_selected)]
         },
-        fallbacks=[],
+        fallbacks=[CommandHandler('cancel', cancel)],
     )
 
     app.add_handler(conv_handler)
-    app.run_polling()
 
-if __name__ == '__main__':
-    main()
+    print("Bot corriendo... 🚀")
+    app.run_polling()
